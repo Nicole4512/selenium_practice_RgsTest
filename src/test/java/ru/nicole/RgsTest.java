@@ -1,40 +1,41 @@
 package ru.nicole;
+
 import org.junit.After;
 import org.junit.Assert;
+import org.junit.Before;
 import org.junit.Test;
 import org.openqa.selenium.*;
 import org.openqa.selenium.chrome.ChromeDriver;
-import org.junit.Before;
+
 import org.openqa.selenium.interactions.Actions;
 import org.openqa.selenium.support.ui.ExpectedConditions;
+import org.openqa.selenium.support.ui.Select;
 import org.openqa.selenium.support.ui.WebDriverWait;
 
-import javax.swing.*;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
-import static java.lang.Thread.sleep;
 
-
-public class Rgs {
+public class RgsTest {
     private WebDriver driver;
     private WebDriverWait wait;
 
     @Before
-        public void TestBefore(){
-            System.setProperty("webdriver.chrome.driver", "src/test/resources/chromedriver.exe");
-            driver = new ChromeDriver();
-            driver.manage().timeouts().pageLoadTimeout(30, TimeUnit.SECONDS);
-            wait = new WebDriverWait(driver, 10, 1000);
-            driver.manage().timeouts().implicitlyWait(20, TimeUnit.SECONDS);
-            driver.manage().window().maximize();
-            String baseUrl = "https://www.rgs.ru/";
-            driver.get(baseUrl);
-        }
+    public void TestBefore() {
+        System.setProperty("webdriver.chrome.driver", "src/test/resources/chromedriver.exe");
+        driver = new ChromeDriver();
+        driver.manage().timeouts().pageLoadTimeout(30, TimeUnit.SECONDS);
+        wait = new WebDriverWait(driver, 15, 1000);
+        driver.manage().timeouts().implicitlyWait(10, TimeUnit.SECONDS);
+        driver.manage().window().maximize();
+        String baseUrl = "https://www.rgs.ru/";
+        driver.get(baseUrl);
+    }
 
     @Test
-    public void TestRGS(){
+    public void TestRGS() {
+
         //Выбрать меню
         WebElement menu = driver.findElement(By.xpath("//a[contains(text(), 'Меню') and contains(@class, 'hidden-xs')]"));
         wait.until(ExpectedConditions.elementToBeClickable(menu));
@@ -53,7 +54,6 @@ public class Rgs {
         health.click();
 
 
-//a[contains(text(), 'Добровольное медицинское страхование') and contains(@href, 'dms')]
         //Выбрать пункт "Добровольное медицинское страхование"
         switchToTabByText("ДМС для сотрудников - добровольное медицинское страхование от Росгосстраха");
 
@@ -65,7 +65,6 @@ public class Rgs {
         WebElement DMSheadline = driver.findElement(By.xpath("//h1[contains(@class, 'content-document-header')]"));
         wait.until(ExpectedConditions.visibilityOf(DMSheadline));
         Assert.assertEquals("Заголовок отсутствует", "Добровольное медицинское страхование", DMSheadline.getText());
-
 
 
         //Нажать "отправить заявку"
@@ -83,30 +82,18 @@ public class Rgs {
         fillInputField(driver.findElement(By.xpath(String.format(fieldXPath, "Email"))), "qwertyqwerty");
         fillInputField(driver.findElement(By.xpath("//textarea[contains(@class, 'popupTextarea') and contains(@data-bind, 'Comment')]")), "Комментарии");
 
-        WebElement popupSelectBtn = driver.findElement(By.xpath("//select[@name='Region' and contains(@data-bind, 'options:RegionsList')]"));
-        popupSelectBtn.click();
-        popupSelectBtn.sendKeys(Keys.DOWN);
-        popupSelectBtn.sendKeys(Keys.ENTER);
+        Select region = new Select(driver.findElement((By.xpath("//select[@name='Region' and contains(@data-bind, 'options:RegionsList')]"))));
+        region.selectByVisibleText("Москва");
 
         WebElement phone = driver.findElement(By.xpath(String.format(fieldXPath, "Phone")));
-        scrollToElementJs(phone);
-        wait.until(ExpectedConditions.elementToBeClickable(phone));
-        phone.click();
-        phone.sendKeys("9117776655");
-        boolean checkFlagPhone = wait.until(ExpectedConditions.attributeContains(phone, "value", "55"));
-        Assert.assertTrue("Поле было заполнено некорректно",checkFlagPhone);
+        fillInputPhone(phone, "9117778899");
 
         WebElement date = driver.findElement(By.xpath(String.format(fieldXPath, "ContactDate")));
-        scrollToElementJs(date);
-        wait.until(ExpectedConditions.elementToBeClickable(date));
-        date.click();
-        date.sendKeys("11.01.2022");
-        date.sendKeys(Keys.ENTER);
+        fillInputDate(date, "01.02.2022");
 
 
         WebElement checkbox = driver.findElement(By.xpath("//input[@class  = 'checkbox' and @type = 'checkbox']"));
-        scrollToElementJs(checkbox);
-        checkbox.click();
+        setCheckbox(checkbox, true);
 
 
         //Нажать Отправить
@@ -119,14 +106,47 @@ public class Rgs {
         WebElement email = driver.findElement(By.xpath(String.format(fieldXPath, "Email")));
         email = email.findElement(By.xpath("./..//span"));
         Assert.assertEquals("Проверка ошибки у поля не была пройдена",
-                    "Введите адрес электронной почты", email.getText());
+                "Введите адрес электронной почты", email.getText());
 
 
     }
 
     @After
-    public void TestAfter(){
+    public void TestAfter() {
         driver.quit();
+    }
+    private void setCheckbox (WebElement checkbox, boolean b){
+        if(b != Boolean.parseBoolean(checkbox.getAttribute("checked"))){
+            scrollToElementJs(checkbox);
+            checkbox.click();
+            Assert.assertEquals("", "" + b, checkbox.getAttribute("checked"));
+        }
+    }
+
+    private void fillInputPhone(WebElement phone, String value) {
+        scrollToElementJs(phone);
+        wait.until(ExpectedConditions.elementToBeClickable(phone));
+        phone.click();
+        phone.sendKeys(value);
+        boolean checkFlagPhone = wait.until(ExpectedConditions.attributeContains(phone, "value", convertValuePhone(value)));
+        Assert.assertTrue("Поле было заполнено некорректно", checkFlagPhone);
+
+    }
+
+    private String convertValuePhone(String value) {
+        return "+7 (" + value.substring(0, 3) + ") " + value.substring(3, 6) + "-" + value.substring(6, 8) + "-" + value.substring(8);
+    }
+
+
+    private void fillInputDate(WebElement date, String value){
+        scrollToElementJs(date);
+        wait.until(ExpectedConditions.elementToBeClickable(date));
+        date.click();
+        date.sendKeys(value);
+        date.sendKeys(Keys.ENTER);
+        boolean checkFlag = wait.until(ExpectedConditions.attributeContains(date, "value", value));
+        Assert.assertTrue("Поле было заполнено некорректно", checkFlag);
+
     }
 
     private void scrollToElementJs(WebElement element) {
@@ -134,19 +154,20 @@ public class Rgs {
         javascriptExecutor.executeScript("arguments[0].scrollIntoView(true);", element);
     }
 
-    private void switchToTabByText(String text){
+    private void switchToTabByText(String text) {
         String myTab = driver.getWindowHandle();
         List<String> newTab = new ArrayList<>(driver.getWindowHandles());
-        for (String s : newTab){
-            if(!s.equals(myTab)){
+        for (String s : newTab) {
+            if (!s.equals(myTab)) {
                 driver.switchTo().window(s);
-                if (driver.getTitle().contains(text)){
+                if (driver.getTitle().contains(text)) {
                     return;
                 }
             }
         }
         Assert.fail("Вкладка " + text + " не найдена");
     }
+
     private void fillInputField(WebElement element, String value) {
         scrollToElementJs(element);
         wait.until(ExpectedConditions.elementToBeClickable(element));
@@ -158,19 +179,17 @@ public class Rgs {
     }
 
 
-    private void close(By by, By iframe){
+    private void close(By by, By iframe) {
         driver.manage().timeouts().implicitlyWait(2, TimeUnit.SECONDS);
-        try{
-        WebElement iframeName = wait.until(ExpectedConditions.presenceOfElementLocated(iframe));
-        driver.switchTo().frame(iframeName);
-        WebElement close = driver.findElement(by);
-        new Actions(driver).moveToElement(close).click().build().perform();
-        driver.switchTo().defaultContent();
-        }catch (NoSuchElementException ignore){
+        try {
+            WebElement iframeName = wait.until(ExpectedConditions.presenceOfElementLocated(iframe));
+            driver.switchTo().frame(iframeName);
+            WebElement close = driver.findElement(by);
+            new Actions(driver).moveToElement(close).click().build().perform();
+            driver.switchTo().defaultContent();
+        } catch (NoSuchElementException | TimeoutException ignore) {
 
-        }catch (TimeoutException ignore){
-
-        }finally {
+        } finally {
             driver.manage().timeouts().implicitlyWait(15, TimeUnit.SECONDS);
 
         }
